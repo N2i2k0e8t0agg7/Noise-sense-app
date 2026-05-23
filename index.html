@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NoiseSense — Urban Noise Intelligence</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090d;--s1:#0f1117;--s2:#161921;--s3:#1c2030;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#eef0f7;--text2:#7c8299;--text3:#3e4357;
+  --g:#00e5a0;--g2:#00b87a;--warn:#f5a623;--red:#ff4757;--blue:#4a9eff;--purple:#9b6fff;
+  --mono:'Courier New',monospace;--head:'Georgia',serif;--body:system-ui,sans-serif;
+  --r:12px;--r-sm:8px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.6;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;background:rgba(8,9,13,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem;cursor:pointer}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--g);animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(0,229,160,.5)}50%{box-shadow:0 0 0 7px rgba(0,229,160,0)}}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{background:none;border:none;color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.85rem;font-family:var(--body);transition:all .2s}
+.nav-tab:hover,.nav-tab.active{background:var(--s2);color:var(--text)}
+.nav-live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.72rem;color:var(--red);background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.2);padding:5px 12px;border-radius:100px}
+.blink{width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.1s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* PAGES */
+.page{display:none;padding-top:58px;min-height:100vh}
+.page.active{display:block}
+
+/* HERO */
+.hero{min-height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.hero-glow{position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse at center,rgba(0,229,160,.07) 0%,transparent 65%);pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);padding:6px 18px;border-radius:100px;font-family:var(--mono);font-size:.75rem;color:var(--g);margin-bottom:2rem;animation:fadeup .5s ease both}
+.hero h1{font-family:var(--head);font-size:clamp(2.6rem,7vw,5rem);font-weight:700;line-height:1.08;animation:fadeup .5s .08s ease both}
+.hero h1 em{font-style:normal;color:var(--g)}
+.hero-sub{max-width:520px;color:var(--text2);font-size:1rem;margin:1.5rem auto 0;animation:fadeup .5s .16s ease both}
+.hero-btns{display:flex;gap:1rem;margin-top:2.5rem;flex-wrap:wrap;justify-content:center;animation:fadeup .5s .24s ease both}
+.btn{padding:12px 28px;border-radius:var(--r-sm);font-size:.9rem;font-family:var(--body);font-weight:600;cursor:pointer;transition:all .18s;border:none}
+.btn-g{background:var(--g);color:#000}
+.btn-g:hover{background:var(--g2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,229,160,.22)}
+.btn-o{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn-o:hover{background:var(--s2)}
+.hero-stats{display:flex;gap:3rem;margin-top:4rem;animation:fadeup .5s .32s ease both;flex-wrap:wrap;justify-content:center}
+.hstat strong{display:block;font-family:var(--head);font-size:2.2rem;color:var(--text)}
+.hstat span{font-size:.82rem;color:var(--text2)}
+@keyframes fadeup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD */
+.dash{max-width:1200px;margin:0 auto;padding:2rem}
+.dash-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.dash-title{font-family:var(--head);font-size:1.5rem;font-weight:700}
+.dash-sub{color:var(--text2);font-size:.82rem;margin-top:2px}
+
+.ai-box{background:rgba(155,111,255,.07);border:1px solid rgba(155,111,255,.22);border-radius:var(--r);padding:1rem 1.25rem;display:flex;gap:12px;margin-bottom:1.5rem;align-items:flex-start}
+.ai-icon{font-size:1.3rem;margin-top:1px}
+.ai-txt strong{color:var(--purple);display:block;font-size:.88rem;margin-bottom:3px}
+.ai-txt p{color:var(--text2);font-size:.83rem}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+.mcard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem;transition:border-color .2s}
+.mcard:hover{border-color:var(--border2)}
+.mcard.c-g{border-color:rgba(0,229,160,.2)}
+.mcard.c-w{border-color:rgba(245,166,35,.2)}
+.mcard.c-r{border-color:rgba(255,71,87,.2)}
+.mcard.c-b{border-color:rgba(74,158,255,.2)}
+.mlabel{font-family:var(--mono);font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+.mval{font-family:var(--head);font-size:2rem;font-weight:700}
+.msub{font-size:.78rem;color:var(--text2);margin-top:3px}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+.ccard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem}
+.ctitle{font-family:var(--mono);font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+canvas{display:block;width:100%!important}
+
+/* HEATMAP */
+.hmap-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1.5rem}
+.hmap-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem}
+.hmap-legend{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;color:var(--text3)}
+.hmap-swatches{display:flex;gap:3px}
+.swatch{width:13px;height:13px;border-radius:3px}
+#hmap-rows{display:flex;flex-direction:column;gap:3px}
+.hmap-row{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
+.hm-cell{height:28px;border-radius:3px;cursor:pointer;transition:transform .15s,opacity .15s}
+.hm-cell:hover{transform:scale(1.2);z-index:5;opacity:.9}
+.hmap-xlabels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-top:5px}
+
+/* TABLE */
+.tcard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem}
+.tcard table{width:100%;border-collapse:collapse}
+.tcard th{text-align:left;padding:.85rem 1.1rem;font-family:var(--mono);font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;background:var(--s2);border-bottom:1px solid var(--border)}
+.tcard td{padding:.8rem 1.1rem;font-size:.88rem;border-bottom:1px solid var(--border)}
+.tcard tr:last-child td{border-bottom:none}
+.tcard tbody tr{transition:background .15s}
+.tcard tbody tr:hover td{background:var(--s2)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:.7rem;font-weight:700;font-family:var(--mono)}
+.bg{background:rgba(0,229,160,.1);color:var(--g)}
+.bw{background:rgba(245,166,35,.12);color:var(--warn)}
+.br{background:rgba(255,71,87,.12);color:var(--red)}
+.bar-wrap{height:3px;background:var(--s3);border-radius:2px;margin-top:4px;min-width:70px}
+.bar-fill{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* HOW IT WORKS */
+.how-wrap{max-width:1100px;margin:0 auto;padding:4rem 2rem}
+.sec-label{font-family:var(--mono);font-size:.72rem;color:var(--g);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem}
+.sec-title{font-family:var(--head);font-size:clamp(1.7rem,4vw,2.4rem);font-weight:700;margin-bottom:.8rem}
+.sec-sub{color:var(--text2);max-width:500px;font-size:.95rem}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.2rem;margin-top:2.5rem}
+.step{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:1.6rem;position:relative;transition:border-color .2s,transform .2s}
+.step:hover{border-color:var(--border2);transform:translateY(-3px)}
+.step-num{font-family:var(--head);font-size:2.8rem;font-weight:700;color:var(--s3);position:absolute;top:.8rem;right:1.2rem;line-height:1}
+.step-icon{font-size:1.5rem;margin-bottom:.8rem}
+.step h3{font-weight:700;font-size:1rem;margin-bottom:.4rem}
+.step p{color:var(--text2);font-size:.85rem;line-height:1.55}
+.chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:2rem}
+.chip{background:var(--s1);border:1px solid var(--border);padding:6px 14px;border-radius:100px;font-family:var(--mono);font-size:.75rem;color:var(--text2);transition:all .2s;cursor:default}
+.chip:hover{border-color:var(--g);color:var(--g)}
+
+/* TEAM */
+.team-wrap{max-width:1100px;margin:0 auto;padding:4rem 2rem}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1.2rem;margin-top:2.5rem}
+.tcard2{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;text-align:center;transition:border-color .2s,transform .2s}
+.tcard2:hover{border-color:var(--border2);transform:translateY(-3px)}
+.av{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:1.25rem;font-weight:700;margin:0 auto 1rem}
+.tcard2 h4{font-weight:700;margin-bottom:3px}
+.tcard2 small{font-family:var(--mono);font-size:.75rem;color:var(--text2)}
+.tcard2 .role-tag{display:inline-block;margin-top:.6rem;background:var(--s2);padding:3px 10px;border-radius:4px;font-size:.72rem;color:var(--text2);font-family:var(--mono)}
+
+/* SUBMIT */
+.sub-wrap{max-width:1100px;margin:0 auto;padding:2rem 2rem 4rem}
+.sub-box{background:var(--s1);border:1px solid rgba(0,229,160,.18);border-radius:var(--r);padding:3rem;text-align:center;position:relative;overflow:hidden}
+.sub-box::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(0,229,160,.06) 0%,transparent 60%);pointer-events:none}
+.sub-box h2{font-family:var(--head);font-size:1.9rem;margin-bottom:.75rem}
+.sub-box p{color:var(--text2);max-width:460px;margin:0 auto 2rem;font-size:.95rem}
+.sub-links{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+
+/* TOOLTIP */
+#tip{position:fixed;z-index:999;background:var(--s3);border:1px solid var(--border2);color:var(--text);padding:5px 11px;border-radius:6px;font-family:var(--mono);font-size:.72rem;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:1.5rem 2rem;text-align:center;color:var(--text3);font-family:var(--mono);font-size:.75rem}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="showPage('home')">
+    <span class="logo-dot"></span>NoiseSense
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home',this)">Home</button>
+    <button class="nav-tab" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('how',this)">How it works</button>
+    <button class="nav-tab" onclick="showPage('team',this)">Team</button>
+  </div>
+  <div class="nav-live"><span class="blink"></span> LIVE</div>
+</nav>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="badge">🏆 HackCity 2025 &nbsp;·&nbsp; Smart Cities Track</div>
+    <h1>Urban noise<br/>made <em>visible.</em></h1>
+    <p class="hero-sub">Real-time acoustic monitoring across 12 city zones — powered by IoT sensors and AI anomaly detection. Know when, where, and why noise exceeds safe limits.</p>
+    <div class="hero-btns">
+      <button class="btn btn-g" onclick="showPage('dashboard',document.querySelectorAll('.nav-tab')[1])">Open Dashboard →</button>
+      <button class="btn btn-o" onclick="showPage('how',document.querySelectorAll('.nav-tab')[2])">How it works</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><strong>48</strong><span>Active sensors</span></div>
+      <div class="hstat"><strong>12</strong><span>City zones</span></div>
+      <div class="hstat" id="home-alert-count"><strong>3</strong><span>Live alerts</span></div>
+      <div class="hstat"><strong>99.2%</strong><span>Uptime</span></div>
+    </div>
+  </section>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dashboard">
+<div class="dash">
+  <div class="dash-top">
+    <div>
+      <div class="dash-title">Citywide Noise Monitor</div>
+      <div class="dash-sub">Auto-refreshing every 5 seconds · All times local</div>
+    </div>
+    <div class="nav-live" style="font-size:.75rem"><span class="blink"></span> LIVE DATA</div>
+  </div>
+
+  <div class="ai-box">
+    <div class="ai-icon">🤖</div>
+    <div class="ai-txt">
+      <strong id="ai-title">AI Anomaly Detected — Zone 7 (Downtown Core)</strong>
+      <p id="ai-msg">Noise has exceeded 85 dB for 14 consecutive minutes. Pattern matches construction activity (93% confidence). Alerting city operations team now.</p>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="mcard c-r">
+      <div class="mlabel">Avg. City dB Now</div>
+      <div class="mval" id="m-avg" style="color:var(--red)">72</div>
+      <div class="msub" id="m-avg-sub">↑ 4 dB above daily baseline</div>
+    </div>
+    <div class="mcard c-w">
+      <div class="mlabel">Zones in Warning</div>
+      <div class="mval" id="m-warn" style="color:var(--warn)">5</div>
+      <div class="msub">Out of 12 monitored zones</div>
+    </div>
+    <div class="mcard c-g">
+      <div class="mlabel">Quietest Zone Right Now</div>
+      <div class="mval" id="m-quiet" style="color:var(--g)">38 dB</div>
+      <div class="msub" id="m-quiet-sub">Riverside Park — Zone 11</div>
+    </div>
+    <div class="mcard c-b">
+      <div class="mlabel">Events Classified Today</div>
+      <div class="mval" id="m-events" style="color:var(--blue)">247</div>
+      <div class="msub">Traffic, construction, social</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="ccard">
+      <div class="ctitle">24-Hour Noise Trend (dB) — Top 3 Zones</div>
+      <canvas id="trendCanvas" height="170"></canvas>
+    </div>
+    <div class="ccard">
+      <div class="ctitle">Event Type Breakdown</div>
+      <canvas id="pieCanvas" height="170"></canvas>
+    </div>
+  </div>
+
+  <div class="hmap-card">
+    <div class="hmap-head">
+      <div>
+        <div class="ctitle" style="margin-bottom:3px">Hour-by-Hour Heatmap — Today</div>
+        <div style="font-size:.72rem;color:var(--text3)">6 zones × 24 hours · hover for details</div>
+      </div>
+      <div class="hmap-legend">
+        <span>Quiet</span>
+        <div class="hmap-swatches">
+          <div class="swatch" style="background:#162b1f"></div>
+          <div class="swatch" style="background:#1b4a2a"></div>
+          <div class="swatch" style="background:#2e7a3e"></div>
+          <div class="swatch" style="background:#d4891a"></div>
+          <div class="swatch" style="background:#e03040"></div>
+        </div>
+        <span>Loud</span>
+      </div>
+    </div>
+    <div id="hmap-rows"></div>
+    <div class="hmap-xlabels">
+      <span>00:00</span><span>03:00</span><span>06:00</span><span>09:00</span>
+      <span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>23:59</span>
+    </div>
+  </div>
+
+  <div class="tcard">
+    <table>
+      <thead>
+        <tr>
+          <th>Zone</th><th>Sensor ID</th><th>Current dB</th>
+          <th>Status</th><th>Top Event</th><th>Last Update</th>
+        </tr>
+      </thead>
+      <tbody id="sensor-tbody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- HOW IT WORKS PAGE -->
+<div class="page" id="page-how">
+<div class="how-wrap">
+  <div class="sec-label">Architecture</div>
+  <div class="sec-title">How NoiseSense works</div>
+  <div class="sec-sub">End-to-end pipeline from microphone to citywide insight — built to scale across hundreds of sensors.</div>
+  <div class="steps">
+    <div class="step"><span class="step-num">01</span><div class="step-icon">🎙️</div><h3>Edge Capture</h3><p>Raspberry Pi 4 nodes with calibrated MEMS microphones sample audio at 44.1 kHz. Only acoustic features are transmitted — never raw audio.</p></div>
+    <div class="step"><span class="step-num">02</span><div class="step-icon">📡</div><h3>MQTT Streaming</h3><p>Feature packets publish to a cloud broker every 500 ms. LoRaWAN fallback ensures connectivity in poor-signal urban canyons.</p></div>
+    <div class="step"><span class="step-num">03</span><div class="step-icon">🧠</div><h3>AI Classification</h3><p>A lightweight CNN (YAMNet fine-tuned on urban soundscapes) classifies events: traffic, construction, crowds, music, alarms — in under 80 ms.</p></div>
+    <div class="step"><span class="step-num">04</span><div class="step-icon">⚡</div><h3>Anomaly Detection</h3><p>Z-score and Isolation Forest models flag readings deviating from historical baselines. Alerts reach city ops within 30 seconds of onset.</p></div>
+    <div class="step"><span class="step-num">05</span><div class="step-icon">🗺️</div><h3>Live Dashboard</h3><p>WebSocket-powered interface shows per-zone dB, heatmaps, trend lines, and AI incident summaries for operators on any device.</p></div>
+    <div class="step"><span class="step-num">06</span><div class="step-icon">📊</div><h3>Open Data API</h3><p>REST + GraphQL endpoints serve historical data to urban planners, researchers, and civic apps under open data license for public zones.</p></div>
+  </div>
+  <div style="margin-top:3rem">
+    <div class="sec-label" style="margin-bottom:.8rem">Tech Stack</div>
+    <div class="chips">
+      <span class="chip">Python 3.12</span><span class="chip">FastAPI</span><span class="chip">PyTorch</span>
+      <span class="chip">YAMNet CNN</span><span class="chip">MQTT / Mosquitto</span><span class="chip">TimescaleDB</span>
+      <span class="chip">Redis Streams</span><span class="chip">Raspberry Pi 4</span><span class="chip">MEMS Mic</span>
+      <span class="chip">LoRaWAN</span><span class="chip">WebSocket</span><span class="chip">Docker</span>
+      <span class="chip">Kubernetes</span><span class="chip">scikit-learn</span><span class="chip">OpenAPI 3.1</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TEAM PAGE -->
+<div class="page" id="page-team">
+<div class="team-wrap">
+  <div class="sec-label">The Team</div>
+  <div class="sec-title">Built in 36 hours</div>
+  <div class="sec-sub">Four engineers, one mission — make cities quieter through data and open-source tooling.</div>
+  <div class="team-grid">
+    <div class="tcard2">
+      <div class="av" style="background:rgba(0,229,160,.12);color:var(--g)">AK</div>
+      <h4>Aisha Karimi</h4>
+      <small>Lead ML Engineer</small>
+      <div class="role-tag">Signal Processing · YAMNet</div>
+    </div>
+    <div class="tcard2">
+      <div class="av" style="background:rgba(74,158,255,.12);color:var(--blue)">LN</div>
+      <h4>Leo Nakamura</h4>
+      <small>Embedded / IoT</small>
+      <div class="role-tag">RPi · LoRaWAN · MQTT</div>
+    </div>
+    <div class="tcard2">
+      <div class="av" style="background:rgba(155,111,255,.12);color:var(--purple)">SR</div>
+      <h4>Sofia Reyes</h4>
+      <small>Backend / DevOps</small>
+      <div class="role-tag">FastAPI · TimescaleDB · K8s</div>
+    </div>
+    <div class="tcard2">
+      <div class="av" style="background:rgba(245,166,35,.12);color:var(--warn)">MB</div>
+      <h4>Marcus Bell</h4>
+      <small>Frontend / UX</small>
+      <div class="role-tag">Dashboard · Charts · Design</div>
+    </div>
+  </div>
+  <div class="sub-wrap" style="padding-left:0;padding-right:0;margin-top:0">
+    <div class="sub-box">
+      <div style="font-size:2rem">🏆</div>
+      <h2 style="margin-top:.75rem">HackCity 2025 — Smart Cities Track</h2>
+      <p>NoiseSense tackles WHO-defined environmental noise — a silent epidemic affecting over 100 million people in Europe alone. Our system gives city authorities real-time tools to monitor, respond, and plan.</p>
+      <div class="sub-links">
+        <button class="btn btn-g">GitHub Repo →</button>
+        <button class="btn btn-o">Watch Demo</button>
+        <button class="btn btn-o">Devpost →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>NoiseSense &nbsp;·&nbsp; HackCity 2025 &nbsp;·&nbsp; Built in 36 hours &nbsp;·&nbsp; MIT License</footer>
+
+<script>
+// ── PAGE ROUTING ──────────────────────────────────────────────
+function showPage(name, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (tab) tab.classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'dashboard') initDash();
+}
+
+// ── DATA ──────────────────────────────────────────────────────
+var ZONES = [
+  { name:'Downtown Core',   id:'SN-001', base:78, event:'Traffic' },
+  { name:'Central Station', id:'SN-007', base:74, event:'Crowd' },
+  { name:'Market District', id:'SN-014', base:70, event:'Social' },
+  { name:'Tech Campus',     id:'SN-022', base:58, event:'HVAC' },
+  { name:'Hospital Zone',   id:'SN-031', base:52, event:'Traffic' },
+  { name:'Old Town',        id:'SN-039', base:66, event:'Music' },
+  { name:'Harbor Front',    id:'SN-043', base:63, event:'Traffic' },
+  { name:'Uni Campus',      id:'SN-047', base:60, event:'Crowd' },
+];
+
+var HOUR_PROFILE = [
+  .55,.45,.40,.40,.46,.62,
+  .80,.95,1.0,1.0,.98,.97,
+  .95,.97,.96,.93,.95,1.0,
+  .98,.90,.82,.72,.62,.57
+];
+
+var PIE_DATA = [
+  { label:'Traffic',      val:38, color:'#ff4757' },
+  { label:'Construction', val:22, color:'#f5a623' },
+  { label:'Crowd',        val:18, color:'#4a9eff' },
+  { label:'Music',        val:10, color:'#9b6fff' },
+  { label:'HVAC',         val: 8, color:'#00e5a0' },
+  { label:'Other',        val: 4, color:'#555c75' },
+];
+
+var sensorVals = ZONES.map(z => z.base);
+var eventCount = 247;
+var dashInited = false;
+var updateTimer = null;
+
+function rnd(v, range) {
+  return Math.round(Math.min(96, Math.max(26, v + (Math.random() - .5) * range * 2)));
+}
+
+function dbColor(db) {
+  return db < 55 ? 'var(--g)' : db < 70 ? 'var(--warn)' : 'var(--red)';
+}
+function hmColor(db) {
+  if (db < 45) return '#162b1f';
+  if (db < 55) return '#1b4a2a';
+  if (db < 65) return '#2e7a3e';
+  if (db < 75) return '#d4891a';
+  return '#e03040';
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────
+function buildHeatmap() {
+  var tip = document.getElementById('tip');
+  var container = document.getElementById('hmap-rows');
+  container.innerHTML = '';
+  var hours = ['00','01','02','03','04','05','06','07','08','09','10','11',
+                '12','13','14','15','16','17','18','19','20','21','22','23'];
+  ZONES.slice(0,6).forEach(function(zone) {
+    var row = document.createElement('div');
+    row.className = 'hmap-row';
+    for (var h = 0; h < 24; h++) {
+      var db = Math.round(zone.base * HOUR_PROFILE[h] + (Math.random()-.5)*10);
+      db = Math.min(96, Math.max(26, db));
+      (function(zone, h, db) {
+        var cell = document.createElement('div');
+        cell.className = 'hm-cell';
+        cell.style.background = hmColor(db);
+        cell.addEventListener('mouseenter', function(e) {
+          tip.textContent = zone.name + ' · ' + hours[h] + ':00 · ' + db + ' dB';
+          tip.style.opacity = '1';
+        });
+        cell.addEventListener('mousemove', function(e) {
+          tip.style.left = (e.clientX + 14) + 'px';
+          tip.style.top  = (e.clientY - 30) + 'px';
+        });
+        cell.addEventListener('mouseleave', function() { tip.style.opacity = '0'; });
+        row.appendChild(cell);
+      })(zone, h, db);
+    }
+    container.appendChild(row);
+  });
+}
+
+// ── TABLE ─────────────────────────────────────────────────────
+function buildTable() {
+  var tbody = document.getElementById('sensor-tbody');
+  tbody.innerHTML = '';
+  var now = new Date();
+  var ts = now.toLocaleTimeString('en-GB');
+  sensorVals.forEach(function(db, i) {
+    var z = ZONES[i];
+    var pct = Math.round((db - 26) / 70 * 100);
+    var cls = db < 55 ? 'bg' : db < 70 ? 'bw' : 'br';
+    var label = db < 55 ? 'Safe' : db < 70 ? 'Warning' : 'Critical';
+    var c = db < 55 ? 'var(--g)' : db < 70 ? 'var(--warn)' : 'var(--red)';
+    tbody.innerHTML += '<tr>'
+      + '<td><strong>' + z.name + '</strong></td>'
+      + '<td style="font-family:var(--mono);color:var(--text3);font-size:.78rem">' + z.id + '</td>'
+      + '<td><span style="font-family:var(--mono);font-weight:700;color:' + c + '">' + db + '</span>'
+      + '<span style="color:var(--text3);font-size:.8rem"> dB</span>'
+      + '<div class="bar-wrap"><div class="bar-fill" style="width:' + pct + '%;background:' + c + '"></div></div></td>'
+      + '<td><span class="badge ' + cls + '">' + label + '</span></td>'
+      + '<td style="color:var(--text2);font-size:.83rem">' + z.event + '</td>'
+      + '<td style="font-family:var(--mono);font-size:.7rem;color:var(--text3)">' + ts + '</td>'
+      + '</tr>';
+  });
+}
+
+// ── METRICS ───────────────────────────────────────────────────
+function updateMetrics() {
+  var avg = Math.round(sensorVals.reduce(function(a,b){return a+b},0)/sensorVals.length);
+  var warn = sensorVals.filter(function(d){return d>=55&&d<70}).length;
+  var crit = sensorVals.filter(function(d){return d>=70}).length;
+  var minDb = Math.min.apply(null, sensorVals);
+  var minIdx = sensorVals.indexOf(minDb);
+  eventCount += Math.floor(Math.random()*3+1);
+  document.getElementById('m-avg').textContent = avg;
+  document.getElementById('m-warn').textContent = warn + crit;
+  document.getElementById('m-quiet').textContent = minDb + ' dB';
+  document.getElementById('m-quiet-sub').textContent = ZONES[minIdx].name;
+  document.getElementById('m-events').textContent = eventCount;
+  var diff = avg - 68;
+  document.getElementById('m-avg-sub').textContent =
+    (diff > 0 ? '↑ ' + diff : '↓ ' + Math.abs(diff)) + ' dB vs daily baseline';
+  if (document.getElementById('home-alert-count'))
+    document.getElementById('home-alert-count').querySelector('strong').textContent = crit;
+}
+
+// ── CANVAS CHARTS ─────────────────────────────────────────────
+var trendCanvas, pieCanvas;
+var trendGenerated = false;
+var trendData = [];
+
+function generateTrendData() {
+  if (trendGenerated) return;
+  trendGenerated = true;
+  var zones3 = [ZONES[0], ZONES[1], ZONES[10]]; // not real zone 10, handled below
+  var colors = ['#ff4757','#f5a623','#00e5a0'];
+  var bases = [78, 74, 38];
+  trendData = bases.map(function(b, ci) {
+    return {
+      color: colors[ci],
+      label: [ZONES[0].name, ZONES[1].name, 'Riverside Park'][ci],
+      pts: HOUR_PROFILE.map(function(m) { return Math.round(b*m + (Math.random()-.5)*8); })
+    };
+  });
+}
+
+function drawTrend() {
+  var canvas = document.getElementById('trendCanvas');
+  if (!canvas) return;
+  generateTrendData();
+  var W = canvas.parentElement.clientWidth - 40;
+  var H = 170;
+  canvas.width = W;
+  canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var pad = { top:10, right:20, bottom:30, left:40 };
+  var cw = W - pad.left - pad.right;
+  var ch = H - pad.top - pad.bottom;
+  var minY = 20, maxY = 95;
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,.05)';
+  ctx.lineWidth = 1;
+  [30,50,70,90].forEach(function(y) {
+    var py = pad.top + ch - ((y-minY)/(maxY-minY))*ch;
+    ctx.beginPath(); ctx.moveTo(pad.left,py); ctx.lineTo(pad.left+cw,py); ctx.stroke();
+    ctx.fillStyle = '#3e4357'; ctx.font = '10px Courier New';
+    ctx.textAlign = 'right';
+    ctx.fillText(y+'dB', pad.left-4, py+4);
+  });
+  // x labels
+  ctx.fillStyle = '#3e4357'; ctx.font = '10px Courier New'; ctx.textAlign = 'center';
+  [0,6,12,18,23].forEach(function(h) {
+    var px = pad.left + (h/23)*cw;
+    ctx.fillText(String(h).padStart(2,'0')+':00', px, H-8);
+  });
+
+  // lines
+  trendData.forEach(function(d) {
+    ctx.save();
+    ctx.beginPath();
+    d.pts.forEach(function(v,i) {
+      var px = pad.left + (i/23)*cw;
+      var py = pad.top + ch - ((v-minY)/(maxY-minY))*ch;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    });
+    // fill area
+    var last = d.pts.length-1;
+    ctx.lineTo(pad.left+(last/23)*cw, pad.top+ch);
+    ctx.lineTo(pad.left, pad.top+ch);
+    ctx.closePath();
+    ctx.fillStyle = d.color.replace(')',', .07)').replace('rgb','rgba').replace('#','');
+    // simple alpha fill
+    var grad = ctx.createLinearGradient(0,pad.top,0,pad.top+ch);
+    grad.addColorStop(0, hexAlpha(d.color, .12));
+    grad.addColorStop(1, hexAlpha(d.color, 0));
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    d.pts.forEach(function(v,i) {
+      var px = pad.left + (i/23)*cw;
+      var py = pad.top + ch - ((v-minY)/(maxY-minY))*ch;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    });
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  });
+
+  // legend
+  var lx = pad.left;
+  trendData.forEach(function(d) {
+    ctx.fillStyle = d.color;
+    ctx.fillRect(lx, 4, 18, 3);
+    ctx.fillStyle = '#7c8299'; ctx.font = '10px Courier New'; ctx.textAlign = 'left';
+    ctx.fillText(d.label, lx+22, 10);
+    lx += ctx.measureText(d.label).width + 44;
+  });
+}
+
+function hexAlpha(hex, a) {
+  var r=0,g=0,b=0;
+  if (hex[0]==='#'&&hex.length===7) {
+    r=parseInt(hex.slice(1,3),16);
+    g=parseInt(hex.slice(3,5),16);
+    b=parseInt(hex.slice(5,7),16);
+  } else if (hex.startsWith('rgb')) {
+    // css var fallback - just return transparent
+    return 'rgba(200,200,200,'+a+')';
+  }
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+function drawPie() {
+  var canvas = document.getElementById('pieCanvas');
+  if (!canvas) return;
+  var size = Math.min(canvas.parentElement.clientWidth - 40, 200);
+  canvas.width = size + 160;
+  canvas.height = 170;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  var cx = size/2, cy = 80, r = Math.min(cx, cy) - 10;
+  var total = PIE_DATA.reduce(function(a,d){return a+d.val},0);
+  var angle = -Math.PI/2;
+  PIE_DATA.forEach(function(d) {
+    var slice = (d.val/total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,angle,angle+slice);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    ctx.strokeStyle = '#0f1117';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    angle += slice;
+  });
+  // donut hole
+  ctx.beginPath();
+  ctx.arc(cx,cy,r*0.55,0,Math.PI*2);
+  ctx.fillStyle = '#0f1117';
+  ctx.fill();
+  // center text
+  ctx.fillStyle = '#eef0f7';
+  ctx.font = 'bold 16px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(total+'%', cx, cy+3);
+  ctx.fillStyle = '#7c8299';
+  ctx.font = '9px Courier New';
+  ctx.fillText('events', cx, cy+16);
+
+  // legend
+  var lx = size + 12, ly = 18;
+  PIE_DATA.forEach(function(d) {
+    ctx.fillStyle = d.color;
+    ctx.fillRect(lx, ly-9, 10, 10);
+    ctx.fillStyle = '#7c8299'; ctx.font = '10px Courier New'; ctx.textAlign = 'left';
+    ctx.fillText(d.label + ' ' + d.val + '%', lx+14, ly);
+    ly += 20;
+  });
+}
+
+// ── INIT DASHBOARD ────────────────────────────────────────────
+function initDash() {
+  if (!dashInited) {
+    buildHeatmap();
+    dashInited = true;
+  }
+  buildTable();
+  updateMetrics();
+  setTimeout(function() { drawTrend(); drawPie(); }, 50);
+  if (updateTimer) clearInterval(updateTimer);
+  updateTimer = setInterval(function() {
+    sensorVals = sensorVals.map(function(v,i) { return rnd(v, 3); });
+    buildTable();
+    updateMetrics();
+  }, 5000);
+}
+
+// Redraw charts on resize
+window.addEventListener('resize', function() {
+  if (document.getElementById('page-dashboard').classList.contains('active')) {
+    drawTrend(); drawPie();
+  }
+});
+</script>
+</body>
+</html>
